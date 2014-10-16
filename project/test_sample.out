@@ -1,0 +1,138 @@
+--1. Find all judges who work at DC
+SELECT j.name
+FROM Judge j, Court c
+WHERE j.court_id=c.court_id AND c.city='Washington DC';
+      name      
+----------------
+ Sharon Prost
+ Pauline Newman
+ Alan Lourie
+ Alvin Schall
+(4 rows)
+
+--2. Find all the cases that parties from New York have involved
+CREATE VIEW NYPartyInvolved AS
+SELECT I.serial AS serial, I.party_id AS party_id, I.status AS status
+FROM Involved AS I, Party AS P
+WHERE P.location = 'NY' AND P.party_id = I.party_id;
+CREATE VIEW
+SELECT * 
+FROM NYPartyInvolved;
+ serial | party_id | status 
+--------+----------+--------
+      1 |       12 | def
+      3 |       15 | plt
+      3 |       16 | def
+      4 |       17 | plt
+(4 rows)
+
+--3. Find all the cases that parties from New York have involved and won
+CREATE VIEW NYPartyWin AS
+SELECT NY.serial AS serial, NY.party_id AS party_id, NY.status AS status
+FROM Cases AS C, NYPartyInvolved AS NY
+WHERE C.serial = NY.serial AND C.result = NY.status;
+CREATE VIEW
+SELECT *
+FROM NYPartyWin;
+ serial | party_id | status 
+--------+----------+--------
+      1 |       12 | def
+      3 |       16 | def
+(2 rows)
+
+--4. For what percentage of all times has the court favored parties from NY?
+SELECT (100*COUNT(*)/(SELECT COUNT(*) FROM NYPartyInvolved)) AS percent
+FROM NYPartyWin;
+ percent 
+---------
+      50
+(1 row)
+
+DROP VIEW NYPartyWin;
+DROP VIEW
+DROP VIEW NYPartyInvolved;
+DROP VIEW
+--5. Find all specific area(bio-related) cases that a specific(Alan Lourie) has favored the defendant
+SELECT C.serial AS serial
+FROM Judge AS J, Cases AS C, Rules AS R
+WHERE J.name = 'Alan Lourie' AND J.judge_id = R.judge_id
+AND r.serial = C.serial AND C.technical_area = 'bio' AND R.decision = 'def';
+ serial 
+--------
+      1
+      3
+(2 rows)
+
+--5. Find all specific area(bio-related) cases that a specific(Alan Lourie) has favored the plaintiff
+SELECT C.serial AS serial
+FROM Judge AS J, Cases AS C, Rules AS R
+WHERE J.name = 'Alan Lourie' AND J.judge_id = R.judge_id
+AND r.serial = C.serial AND C.technical_area = 'bio' AND R.decision = 'plt';
+ serial 
+--------
+(0 rows)
+
+--7. Does Judge Alan Lourie favor defendant or plaintiff more in bio-related cases? 
+CREATE VIEW ALFavorDef AS
+SELECT C.serial AS serial
+FROM Judge AS J, Cases AS C, Rules AS R
+WHERE J.name = 'Alan Lourie' AND J.judge_id = R.judge_id
+AND r.serial = C.serial AND C.technical_area = 'bio' AND R.decision = 'def';
+CREATE VIEW
+CREATE VIEW ALFavorPlt AS
+SELECT C.serial AS serial
+FROM Judge AS J, Cases AS C, Rules AS R
+WHERE J.name = 'Alan Lourie' AND J.judge_id = R.judge_id
+AND r.serial = C.serial AND C.technical_area = 'bio' AND R.decision = 'plt';
+CREATE VIEW
+SELECT (COUNT(*) - (SELECT COUNT(*) FROM ALFavorPlt)) AS cnt
+FROM ALFavorDef;
+ cnt 
+-----
+   2
+(1 row)
+
+DROP VIEW ALFavorDef;
+DROP VIEW
+DROP VIEW ALFavorPlt;
+DROP VIEW
+--8. For every judge who has ever supported a plaintiff on cases of "utility" issue, find the number of the cases
+SELECT R.judge_id AS judge_id, COUNT(*) AS cnt
+FROM Cases AS C, Rules AS R 
+WHERE C.issue = 'utility' AND C.serial = R.serial AND R.decision = 'plt'
+GROUP BY R.judge_id;
+ judge_id | cnt 
+----------+-----
+        1 |   1
+        2 |   1
+        3 |   2
+(3 rows)
+
+--9. The current client is the plaintiff, the issue of the case is "utility," which judge will most likely support the client's position? 
+CREATE VIEW Potential AS
+SELECT R.judge_id AS judge_id, COUNT(*) AS cnt
+FROM Cases AS C, Rules AS R 
+WHERE C.issue = 'utility' AND C.serial = R.serial AND R.decision = 'plt'
+GROUP BY R.judge_id;
+CREATE VIEW
+SELECT J.name
+FROM Potential AS P1, Judge AS J
+WHERE P1.judge_id = J.judge_id
+AND (P1.cnt >= (SELECT MAX(P2.cnt) FROM Potential AS P2));
+    name     
+-------------
+ Alan Lourie
+(1 row)
+
+                     
+DROP VIEW Potential;
+DROP VIEW
+--10. Is being a female a disadvantage litigating in the Federal Circuit? 
+SELECT (100*count(*)/(select count(*) from Party p1, Involved i1 where p1.gender='female' AND i1.party_id=p1.party_id)) AS percent
+FROM Party p, Involved i, Cases c
+WHERE p.gender='female' AND i.serial=c.serial AND i.party_id=p.party_id AND c.result=i.status;
+ percent 
+---------
+      66
+(1 row)
+

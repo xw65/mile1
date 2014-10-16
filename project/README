@@ -1,0 +1,14 @@
+--Database
+The database we choose is sqlite3.
+
+--create database
+1. create and enter new database: >sqlite3 <database_name>
+2. read in table schema: >.read __path__to__create_table.sql
+3. insert data: >.read __path__to__insert_data.sql
+4. sample query: >.read __path__to__test_sample.sql
+
+-- If you want to test it on class VM, please follow these instructions
+--On VM
+1. dropdb law_info; createdb law_info; psql law_info -af create_table.sql > create_table.out
+2. psql law_info -af insert_data.sql > insert_data.out
+3. psql law_info -af test_sample.sql > test_sample.out
